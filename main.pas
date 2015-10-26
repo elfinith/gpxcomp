@@ -6,6 +6,19 @@ uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
   Dialogs, StdCtrls, ComCtrls, ComObj, Buttons, pngimage, ExtCtrls;
 
+const
+  strDateSeparator = '-';
+  strShortDateFormat = 'yyyy-mm-dd';
+  strTimeSeparator = ':';
+  strShortTimeFormat = 'hh:mm:ss';
+  strConvError = 'Ошибка преобразования : ';
+  strErrorLoadingDoc = 'Ошибка при загрузке документа';
+  strPointNodeName = 'trkpt';
+  strTimeNodeName = 'time';
+  strLatNodeName = 'lat';
+  strLonNodeName = 'lon';
+  strPointsCaption = ' точек';
+
 type
 
   TTrkPt = record
@@ -53,11 +66,8 @@ implementation
 {$R *.dfm}
 
 function getParseError(Error: Variant): string;
-/// Вспомогательная функция. Формирует текст сообщения об ошибке
-/// Вход : Error: TXMLDOMParseError
-/// Выход : Отчет об ошибке
 begin
-  Result := 'Ошибка при загрузке документа ["' + Error.url + ' ]'#13#10
+  Result := strErrorLoadingDoc +  ' ["' + Error.url + ' ]'#13#10
     + Error.reason + #13#10#13#10;
   if (Error.line > 0) then Result := Result + 'строка ' + Error.line
     + ', символ ' + error.linepos + #13#10 + Error.srcText;
@@ -77,18 +87,18 @@ begin
   ShortDF := ShortDateFormat;
   ShortTF := ShortTimeFormat;
   // set Delphi settings for string to date/time
-  DateSeparator := '-';
-  ShortDateFormat := 'yyyy-mm-dd';
-  TimeSeparator := ':';
-  ShortTimeFormat := 'hh:mm:ss';
+  DateSeparator := strDateSeparator;
+  ShortDateFormat := strShortDateFormat;
+  TimeSeparator := strTimeSeparator;
+  ShortTimeFormat := strShortTimeFormat;
   // convert test string to datetime
   try
-    dd := StrToDate( Copy(strDT, 1, Pos('T',strDT)-1) );
-    tt := StrToTime( Copy(strDT, Pos('T',strDT)+1, 8) );
+    dd := StrToDate(Copy(strDT, 1, Pos('T', strDT) - 1));
+    tt := StrToTime(Copy(strDT, Pos('T', strDT) + 1, 8));
     ddtt := trunc(dd) + frac(tt);
   except
     on EConvertError do
-      ShowMessage('Error in converting : ' + strDT);
+      ShowMessage(strConvError + strDT);
   end;
   // restore Delphi settings
   DateSeparator := DS;
@@ -118,17 +128,17 @@ var
     i: integer;
     strTime : string;
   begin
-    if Node.nodeName = 'trkpt' then begin
+    if Node.nodeName = strPointNodeName then begin
       strTime := '';
       for i := 0 to Node.childNodes.length - 1 do begin
-        if Node.childNodes.item[i].nodeName = 'time'
+        if Node.childNodes.item[i].nodeName = strTimeNodeName
         then strTime := Node.childNodes.item[i].childNodes.item[0].nodeValue;
       end;
 
       l := Length(Route) + 1;
       SetLength(Route, l);
-      Route[l - 1].Lat := Node.Attributes.getNamedItem('lat').text;
-      Route[l - 1].Lon := Node.Attributes.getNamedItem('lon').text;
+      Route[l - 1].Lat := Node.Attributes.getNamedItem(strLatNodeName).text;
+      Route[l - 1].Lon := Node.Attributes.getNamedItem(strLonNodeName).text;
       Route[l - 1].Time := getISOtoDateTime(strTime);
     end;
     // вот она сраная рекурсия
@@ -137,31 +147,14 @@ var
 
 begin
   XML := CreateOleObject('Microsoft.XMLDOM');
-
-  // async
-  // Свойство, доступное для записи и чтения,
-  // идентифицирующее текущий режим обработки (синхронный или асинхронный)
   XML.Async := false;
-
-  // Загружает документ, адрес которого задан параметром url.
-  // В случае успеха возвращает логическое значение true. Необходимо иметь в виду,
-  // что вызов этого метода сразу же обнуляет содержимое текущего документа
   XML.load(FileName);
-
-  // Можно загружать из строки:
-  // loadXML(xmlString)
-  // Загружает XML - фрагмент, определенный в передаваемой строке
-
-  // parseError
-  // Возвращает ссылку на объект XMLDOMParseError, при помощи которого
-  // можно получить всю необходимую информацию о последней ошибке анализатора.
-  // Только для чтения.
   if XML.parseError.errorCode <> 0 then begin
     ShowMessage(getParseError(XML.parseError));
   end
   else begin
     mainNode := XML.documentElement;
-    { Загрузка DOM в TreeView }
+    { Загрузка DOM }
     LoadItems(mainNode);
   end;
 end;
@@ -178,9 +171,9 @@ begin
     LoadGpxDoc(strOrgFilename, OriginalRoute);
     for i := 0 to length(OriginalRoute) - 1 do begin
       ListBox1.Items.Add(OriginalRoute[i].Lat + ' : ' + OriginalRoute[i].Lon + ' : '
-        + FormatDateTime('mm/dd/yyyy hh:mm:ss', OriginalRoute[i].Time));
+        + FormatDateTime(strShortDateFormat + ' ' + strShortTimeFormat, OriginalRoute[i].Time));
     end;
-    Label1.Caption := IntToStr(length(OriginalRoute)) + ' точек';
+    Label1.Caption := IntToStr(length(OriginalRoute)) + strPointsCaption;
   end;
 end;
 
@@ -196,9 +189,9 @@ begin
     LoadGpxDoc(strTgtFilename, TargetRoute);
     for i := 0 to length(TargetRoute) - 1 do begin
       ListBox2.Items.Add(TargetRoute[i].Lat + ' : ' + TargetRoute[i].Lon + ' : '
-        + FormatDateTime('mm/dd/yyyy hh:mm:ss', TargetRoute[i].Time));
+        + FormatDateTime(strShortDateFormat + ' ' + strShortTimeFormat, TargetRoute[i].Time));
     end;
-    Label2.Caption := IntToStr(length(TargetRoute)) + ' точек';
+    Label2.Caption := IntToStr(length(TargetRoute)) + strPointsCaption;
   end;
 end;
 
@@ -228,8 +221,8 @@ begin
     ListBox2.ItemIndex := j;
     TimeShift := TargetRoute[j].Time - OriginalRoute[ListBox1.ItemIndex].Time;
     bIsLater := TargetRoute[j].Time > OriginalRoute[ListBox1.ItemIndex].Time;
-    if bIsLater then  Edit3.Text := '+' + FormatDateTime('hh:mm:ss', TimeShift)
-    else Edit3.Text := '-' + FormatDateTime('hh:mm:ss', TimeShift);
+    if bIsLater then  Edit3.Text := '+' + FormatDateTime(strShortTimeFormat, TimeShift)
+    else Edit3.Text := '-' + FormatDateTime(strShortTimeFormat, TimeShift);
     SpeedButton4.Show;
     Label3.Show;
     Edit3.Show;
@@ -249,8 +242,8 @@ begin
     if SaveDialog1.Execute then begin
       slBuffer.LoadFromFile(strTgtFilename);
       for i := 0 to slBuffer.Count - 1 do begin
-        if AnsiPos('<time>', slBuffer[i]) > 0 then begin
-          strNewTime := FormatDateTime('hh:mm:ss',
+        if AnsiPos('<' + strTimeNodeName + '>', slBuffer[i]) > 0 then begin
+          strNewTime := FormatDateTime(strShortTimeFormat,
             StrToTime(Copy(slBuffer[i], Pos('T', slBuffer[i]) + 1, 8)) - TimeShift);
           slResult.Add(StringReplace(slBuffer[i], Copy(slBuffer[i], Pos('T', slBuffer[i]) + 1, 8),
             strNewTime, [rfReplaceAll]));
