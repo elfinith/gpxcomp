@@ -43,12 +43,16 @@ type
     SpeedButton4: TSpeedButton;
     Label3: TLabel;
     Image1: TImage;
+    SpeedButton5: TSpeedButton;
+    SpeedButton6: TSpeedButton;
     procedure LoadGpxDoc(const FileName: string; var Route : TRoute);
     procedure SpeedButton1Click(Sender: TObject);
     procedure SpeedButton2Click(Sender: TObject);
     procedure SpeedButton3Click(Sender: TObject);
     procedure SpeedButton4Click(Sender: TObject);
     procedure ListBox1Click(Sender: TObject);
+    procedure SpeedButton5Click(Sender: TObject);
+    procedure SpeedButton6Click(Sender: TObject);
   private
     { Private declarations }
   public
@@ -192,6 +196,10 @@ begin
         + FormatDateTime(strShortDateFormat + ' ' + strShortTimeFormat, TargetRoute[i].Time));
     end;
     Label2.Caption := IntToStr(length(TargetRoute)) + strPointsCaption;
+    SpeedButton5.Enabled := true;
+    SpeedButton6.Enabled := true;
+    Label3.Show;
+    Edit3.Show;
   end;
 end;
 
@@ -258,4 +266,41 @@ begin
   end;
 end;
 
+procedure TForm1.SpeedButton5Click(Sender: TObject);
+begin
+  if bIsLater then begin
+    if TimeShift > 1 / 24
+    then TimeShift := TimeShift - 1 / 24
+    else begin
+      bIsLater := false;
+    end;
+    Edit3.Text := '+' + FormatDateTime(strShortTimeFormat, TimeShift);
+  end
+  else begin
+    if TimeShift < 22 / 24 then TimeShift := TimeShift + 1 / 24;
+    Edit3.Text := '-' + FormatDateTime(strShortTimeFormat, TimeShift);
+  end;
+  SpeedButton4.Show;
+end;
+
+procedure TForm1.SpeedButton6Click(Sender: TObject);
+begin
+  if bIsLater then begin
+    if TimeShift < 22 / 24
+    then TimeShift := TimeShift + 1 / 24;
+    Edit3.Text := '+' + FormatDateTime(strShortTimeFormat, TimeShift);
+  end
+  else begin
+    if TimeShift > 1 / 24
+    then TimeShift := TimeShift - 1 / 24
+    else begin
+      bIsLater := true;
+    end;
+    Edit3.Text := '-' + FormatDateTime(strShortTimeFormat, TimeShift);
+  end;
+  SpeedButton4.Show;
+end;
+
 end.
+
+
